@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Don't Starve — Damage Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1410;
+    --card: #2a2218;
+    --card-border: #3d3426;
+    --parchment: #f5e6c8;
+    --parchment-dark: #e8d4a8;
+    --ink: #2c1810;
+    --ink-light: #5a4030;
+    --green: #2ecc71;
+    --green-dark: #27ae60;
+    --red: #e74c3c;
+    --red-light: #ff6b6b;
+    --gold: #f0b430;
+    --gold-light: #ffd966;
+    --blue: #5dade2;
+    --purple: #9b59b6;
+    --orange: #e67e22;
+    --teal: #1abc9c;
+    --weapon-colors: #2ecc71, #f0b430, #5dade2, #9b59b6, #e67e22, #1abc9c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Patrick Hand', cursive;
+    background: var(--bg);
+    color: var(--parchment);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    padding: 20px;
+    padding-bottom: 60px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(60,40,20,0.4) 0%, transparent 70%),
+      radial-gradient(ellipse at 80% 20%, rgba(40,30,15,0.3) 0%, transparent 60%);
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .header h1 {
+    font-family: 'Gaegu', cursive;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--parchment);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+  .header .subtitle {
+    font-size: 1.1rem;
+    color: var(--ink-light);
+    color: #8a7a6a;
+    margin-top: 2px;
+  }
+
+  /* ─── TARGET ENEMY ─── */
+  .target-section {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .target-section .label {
+    font-size: 1.2rem;
+    color: #8a7a6a;
+    margin-bottom: 8px;
+  }
+  .enemy-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--card);
+    border: 3px solid var(--card-border);
+    border-radius: 16px;
+    padding: 12px 24px 16px;
+    position: relative;
+  }
+  .enemy-card .enemy-name {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--red-light);
+    margin-bottom: 4px;
+  }
+  .enemy-portrait {
+    width: 120px;
+    height: 120px;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 2px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .enemy-hp-badge {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--red-light);
+  }
+  .enemy-hp-badge span {
+    color: #8a7a6a;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  /* ─── DAMAGE PLAN ─── */
+  .plan-section {
+    margin-bottom: 24px;
+  }
+  .section-title {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--parchment);
+  }
+
+  .weapon-row {
+    background: var(--card);
+    border: 2px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .weapon-row.active {
+    border-color: var(--gold);
+  }
+
+  .weapon-select-wrap {
+    flex: 0 0 auto;
+    position: relative;
+  }
+  .weapon-select {
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.15rem;
+    background: var(--parchment);
+    color: var(--ink);
+    border: 2px solid var(--parchment-dark);
+    border-radius: 12px;
+    padding: 10px 36px 10px 44px;
+    min-width: 160px;
+    cursor: pointer;
+    outline: none;
+    font-weight: 700;
+  }
+  .weapon-select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(240,180,48,0.3);
+  }
+  .weapon-select-wrap::after {
+    content: '▼';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--ink-light);
+    pointer-events: none;
+  }
+  .weapon-icon-preview {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--parchment-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .math-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .damage-value {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--parchment);
+    min-width: 40px;
+    text-align: center;
+  }
+  .damage-label {
+    font-size: 0.75rem;
+    color: #8a7a6a;
+    text-align: center;
+    display: block;
+    margin-top: -4px;
+  }
+  .math-op {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #8a7a6a;
+    padding: 0 2px;
+  }
+
+  .hits-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--parchment);
+    border-radius: 12px;
+    border: 2px solid var(--parchment-dark);
+    overflow: hidden;
+  }
+  .hits-btn {
+    width: 44px;
+    height: 48px;
+    border: none;
+    background: var(--parchment-dark);
+    color: var(--ink);
+    font-family: 'Gaegu', cursive;
+    font-size: 1.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.15s;
+  }
+  .hits-btn:active {
+    background: var(--gold);
+  }
+  .hits-value {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--ink);
+    width: 48px;
+    text-align: center;
+    background: var(--parchment);
+    line-height: 48px;
+  }
+
+  .row-total {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+  }
+  .row-total-value {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  .remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--card-border);
+    background: var(--card);
+    color: var(--red);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .remove-btn:active { opacity: 1; background: var(--red); color: white; }
+
+  /* Mini damage squares next to total */
+  .mini-squares {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-width: 56px;
+  }
+  .mini-sq {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+  }
+
+  /* ─── ADD BUTTON ─── */
+  .add-weapon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: var(--card);
+    border: 2px dashed var(--card-border);
+    border-radius: 16px;
+    color: var(--gold);
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 28px;
+  }
+  .add-weapon-btn:active {
+    background: var(--card-border);
+    border-color: var(--gold);
+  }
+  .add-weapon-btn .plus {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ─── SUMMARY ─── */
+  .summary-divider {
+    height: 3px;
+    background: var(--card-border);
+    border-radius: 2px;
+    margin: 8px 0 20px;
+  }
+
+  .summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .summary-block {
+    text-align: center;
+  }
+  .summary-num {
+    font-family: 'Gaegu', cursive;
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .summary-label {
+    font-size: 0.85rem;
+    color: #8a7a6a;
+  }
+  .summary-op {
+    font-family: 'Gaegu', cursive;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #8a7a6a;
+  }
+
+  .result-alive { color: var(--red-light); }
+  .result-dead { color: var(--green); }
+  .result-overkill { color: var(--green); }
+
+  .enemy-result-icon {
+    font-size: 48px;
+    text-align: center;
+    margin: 12px 0 4px;
+  }
+  .victory-text {
+    text-align: center;
+    font-family: 'Gaegu', cursive;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    min-height: 2rem;
+  }
+
+  /* ─── WAFFLE GRID ─── */
+  .grid-section {
+    margin-top: 20px;
+  }
+  .grid-title {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #8a7a6a;
+    margin-bottom: 10px;
+  }
+  .grid-title span {
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .waffle-grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 3px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .waffle-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    transition: background 0.25s ease;
+    position: relative;
+  }
+
+  .waffle-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #8a7a6a;
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  /* ─── AXIS LABELS ─── */
+  .axis-labels {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 3px;
+    max-width: 600px;
+    margin: 4px auto 0;
+  }
+  .axis-label {
+    font-size: 0.55rem;
+    color: #5a4a3a;
+    text-align: center;
+  }
+  .axis-label.bold {
+    font-weight: 700;
+    color: #8a7a6a;
+  }
+
+  /* ─── RESPONSIVENESS ─── */
+  @media (max-width: 700px) {
+    body { padding: 14px; padding-bottom: 50px; }
+    .header h1 { font-size: 1.8rem; }
+    .weapon-row { padding: 12px 10px; gap: 6px; }
+    .weapon-select { min-width: 130px; font-size: 1.05rem; padding: 8px 32px 8px 40px; }
+    .damage-value { font-size: 1.5rem; }
+    .hits-btn { width: 40px; height: 44px; font-size: 1.4rem; }
+    .hits-value { width: 40px; font-size: 1.5rem; line-height: 44px; }
+    .summary-num { font-size: 2rem; }
+    .math-display { gap: 4px; }
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .pop { animation: pop 0.2s ease; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .weapon-row { animation: slideIn 0.3s ease; }
+
+  @keyframes shakeHead {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+
+  @keyframes celebrate {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.1) rotate(-5deg); }
+    50% { transform: scale(1.2) rotate(0deg); }
+    75% { transform: scale(1.1) rotate(5deg); }
+  }
+  .celebrate { animation: celebrate 0.6s ease; }
+
+  /* Skull crossbones for dead */
+  .dead-x {
+    position: relative;
+    display: inline-block;
+  }
+  .dead-x::after {
+    content: '✕';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 72px;
+    color: var(--red);
+    opacity: 0.7;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚔️ Damage Planner</h1>
+  <div class="subtitle">Plan your attack!</div>
+</div>
+
+<div class="target-section">
+  <div class="label">Target Enemy</div>
+  <div class="enemy-card">
+    <div class="enemy-name">Deerclops</div>
+    <div class="enemy-portrait" id="enemyPortrait">🦌</div>
+    <div class="enemy-hp-badge"><span>HP:</span> 2000</div>
+  </div>
+</div>
+
+<div class="plan-section">
+  <div class="section-title">Damage Plan</div>
+  <div id="weaponRows"></div>
+  <button class="add-weapon-btn" id="addWeaponBtn">
+    <span class="plus">+</span> Add Weapon
+  </button>
+</div>
+
+<div class="summary-divider"></div>
+
+<div class="summary-row">
+  <div class="summary-block">
+    <div class="summary-num" style="color: var(--parchment);" id="totalHP">2000</div>
+    <div class="summary-label">Total Hitpoints</div>
+  </div>
+  <div class="summary-op">−</div>
+  <div class="summary-block">
+    <div class="summary-num" style="color: var(--green);" id="totalDamage">0</div>
+    <div class="summary-label">Total Damage</div>
+  </div>
+  <div class="summary-op">=</div>
+  <div class="summary-block">
+    <div class="summary-num" id="remaining">2000</div>
+    <div class="summary-label" id="remainingLabel">Remaining</div>
+  </div>
+</div>
+
+<div class="enemy-result-icon" id="resultIcon">🦌</div>
+<div class="victory-text" id="victoryText"></div>
+
+<div class="grid-section">
+  <div class="grid-title">Hit Points <span>(1 square = 10 damage)</span></div>
+  <div class="waffle-grid" id="waffleGrid"></div>
+  <div class="axis-labels" id="axisLabels"></div>
+  <div class="waffle-legend" id="waffleLegend"></div>
+</div>
+
+<script>
+const ENEMY_HP = 2000;
+const SQUARES = ENEMY_HP / 10; // 200 squares
+
+const WEAPON_COLORS = [
+  '#2ecc71', '#f0b430', '#5dade2', '#9b59b6', '#e67e22', '#1abc9c',
+  '#e74c3c', '#3498db', '#e91e63', '#00bcd4'
+];
+
+const WEAPONS = [
+  { id: 'none',       name: 'Choose…',         damage: 0,     emoji: '➕', uses: '—' },
+  { id: 'spear',      name: 'Spear',           damage: 34,    emoji: '🔱', uses: '150' },
+  { id: 'tentacle',   name: 'Tentacle Spike',  damage: 51,    emoji: '🐙', uses: '100' },
+  { id: 'hambat',     name: 'Ham Bat',         damage: 59.5,  emoji: '🍖', uses: '∞ (10d)' },
+  { id: 'batbat',     name: 'Bat Bat',         damage: 42.5,  emoji: '🦇', uses: '75' },
+  { id: 'darksword',  name: 'Dark Sword',      damage: 68,    emoji: '⚔️', uses: '100' },
+  { id: 'thulclub',   name: 'Thulecite Club',  damage: 59.5,  emoji: '🏏', uses: '200' },
+  { id: 'boomerang',  name: 'Boomerang',       damage: 27.2,  emoji: '🪃', uses: '10' },
+  { id: 'blowdart',   name: 'Blow Dart',       damage: 100,   emoji: '🎯', uses: '1' },
+  { id: 'firedart',   name: 'Fire Dart',       damage: 120,   emoji: '🔥', uses: '1' },
+  { id: 'sleepdart',  name: 'Sleep Dart',      damage: 0,     emoji: '💤', uses: '1' },
+  { id: 'firestaff',  name: 'Fire Staff',      damage: 120,   emoji: '🪄', uses: '20' },
+  { id: 'icestaff',   name: 'Ice Staff',       damage: 0,     emoji: '🧊', uses: '20' },
+  { id: 'panflute',   name: 'Pan Flute',       damage: 0,     emoji: '🎵', uses: '10' },
+  { id: 'toothtrap',  name: 'Tooth Trap',      damage: 60,    emoji: '🦷', uses: '10' },
+  { id: 'gunpowder',  name: 'Gunpowder',       damage: 200,   emoji: '💣', uses: '1' },
+];
+
+let rows = [];
+let rowIdCounter = 0;
+
+function addRow() {
+  const id = rowIdCounter++;
+  rows.push({ id, weaponIdx: 0, hits: 0 });
+  renderRows();
+  recalc();
+}
+
+function removeRow(id) {
+  rows = rows.filter(r => r.id !== id);
+  renderRows();
+  recalc();
+}
+
+function changeWeapon(id, weaponIdx) {
+  const row = rows.find(r => r.id === id);
+  if (row) {
+    row.weaponIdx = parseInt(weaponIdx);
+    if (row.hits === 0 && row.weaponIdx > 0) row.hits = 1;
+  }
+  renderRows();
+  recalc();
+}
+
+function changeHits(id, delta) {
+  const row = rows.find(r => r.id === id);
+  if (row) {
+    row.hits = Math.max(0, row.hits + delta);
+    // Animate the value
+    const el = document.querySelector(`[data-row="${id}"] .hits-value`);
+    if (el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  }
+  recalc();
+  // Update just the numbers, not full re-render
+  updateRowNumbers(id);
+}
+
+function updateRowNumbers(id) {
+  const row = rows.find(r => r.id === id);
+  if (!row) return;
+  const weapon = WEAPONS[row.weaponIdx];
+  const total = weapon.damage * row.hits;
+  const el = document.querySelector(`[data-row="${id}"]`);
+  if (!el) return;
+  el.querySelector('.hits-value').textContent = row.hits;
+  el.querySelector('.row-total-value').textContent = Math.round(total);
+  renderMiniSquares(el.querySelector('.mini-squares'), total, rows.indexOf(row));
+}
+
+function renderRows() {
+  const container = document.getElementById('weaponRows');
+  container.innerHTML = '';
+
+  rows.forEach((row, idx) => {
+    const weapon = WEAPONS[row.weaponIdx];
+    const total = weapon.damage * row.hits;
+    const color = WEAPON_COLORS[idx % WEAPON_COLORS.length];
+
+    const div = document.createElement('div');
+    div.className = 'weapon-row';
+    div.dataset.row = row.id;
+    div.style.borderLeftColor = color;
+    div.style.borderLeftWidth = '5px';
+    div.style.borderLeftStyle = 'solid';
+
+    div.innerHTML = `
+      ${rows.length > 1 ? `<button class="remove-btn" onclick="removeRow(${row.id})">✕</button>` : ''}
+      <div class="weapon-select-wrap">
+        <div class="weapon-icon-preview">${weapon.emoji}</div>
+        <select class="weapon-select" onchange="changeWeapon(${row.id}, this.value)">
+          ${WEAPONS.map((w, i) => `<option value="${i}" ${i === row.weaponIdx ? 'selected' : ''}>${w.emoji} ${w.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="math-display">
+        <div>
+          <div class="damage-value">${weapon.damage || '—'}</div>
+          <div class="damage-label">Damage Each</div>
+        </div>
+        <div class="math-op">×</div>
+        <div class="hits-control">
+          <button class="hits-btn" onclick="changeHits(${row.id}, -1)">−</button>
+          <div class="hits-value">${row.hits}</div>
+          <button class="hits-btn" onclick="changeHits(${row.id}, 1)">+</button>
+        </div>
+        <div class="math-op">=</div>
+        <div class="row-total">
+          <div class="row-total-value" style="color: ${color};">${Math.round(total)}</div>
+          <div class="damage-label">Damage</div>
+          <div class="mini-squares"></div>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(div);
+    renderMiniSquares(div.querySelector('.mini-squares'), total, idx);
+  });
+}
+
+function renderMiniSquares(container, total, rowIdx) {
+  if (!container) return;
+  const count = Math.min(Math.ceil(total / 10), 40); // cap visual at 40 mini squares
+  const color = WEAPON_COLORS[rowIdx % WEAPON_COLORS.length];
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const sq = document.createElement('div');
+    sq.className = 'mini-sq';
+    sq.style.background = color;
+    container.appendChild(sq);
+  }
+}
+
+function recalc() {
+  let totalDamage = 0;
+  const segments = []; // { damage, colorIdx }
+
+  rows.forEach((row, idx) => {
+    const weapon = WEAPONS[row.weaponIdx];
+    const dmg = weapon.damage * row.hits;
+    totalDamage += dmg;
+    if (dmg > 0) segments.push({ damage: dmg, colorIdx: idx });
+  });
+
+  const remaining = ENEMY_HP - totalDamage;
+  const isDead = remaining <= 0;
+
+  // Update summary numbers
+  document.getElementById('totalHP').textContent = ENEMY_HP;
+  const dmgEl = document.getElementById('totalDamage');
+  dmgEl.textContent = Math.round(totalDamage);
+
+  const remEl = document.getElementById('remaining');
+  remEl.textContent = Math.abs(Math.round(remaining));
+  remEl.className = 'summary-num ' + (isDead ? 'result-dead' : 'result-alive');
+
+  const remLabel = document.getElementById('remainingLabel');
+  remLabel.textContent = isDead ? (remaining === 0 ? 'Exact Kill!' : 'Overkill!') : 'Remaining';
+
+  // Result icon & text
+  const resultIcon = document.getElementById('resultIcon');
+  const victoryText = document.getElementById('victoryText');
+
+  if (totalDamage === 0) {
+    resultIcon.innerHTML = '🦌';
+    resultIcon.className = 'enemy-result-icon';
+    victoryText.textContent = '';
+    victoryText.style.color = '#8a7a6a';
+  } else if (isDead) {
+    resultIcon.innerHTML = '<span class="dead-x">🦌</span>';
+    resultIcon.className = 'enemy-result-icon celebrate';
+    victoryText.textContent = '☠️ DEERCLOPS DEFEATED! ☠️';
+    victoryText.style.color = 'var(--green)';
+  } else {
+    resultIcon.innerHTML = '🦌';
+    resultIcon.className = 'enemy-result-icon';
+    const pct = Math.round((remaining / ENEMY_HP) * 100);
+    victoryText.textContent = `${pct}% health remaining…`;
+    victoryText.style.color = 'var(--red-light)';
+  }
+
+  // Waffle grid
+  renderWaffle(segments, totalDamage);
+  renderLegend(segments);
+}
+
+function renderWaffle(segments, totalDamage) {
+  const grid = document.getElementById('waffleGrid');
+  grid.innerHTML = '';
+
+  // Build color map for each square
+  const colors = new Array(SQUARES).fill(null);
+  let filled = 0;
+
+  for (const seg of segments) {
+    const sqCount = Math.ceil(seg.damage / 10);
+    const color = WEAPON_COLORS[seg.colorIdx % WEAPON_COLORS.length];
+    for (let i = 0; i < sqCount && filled < SQUARES; i++, filled++) {
+      colors[filled] = color;
+    }
+  }
+
+  for (let i = 0; i < SQUARES; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'waffle-cell';
+    if (colors[i]) {
+      cell.style.background = colors[i];
+    } else {
+      cell.style.background = totalDamage > 0 ? 'rgba(231,76,60,0.6)' : 'rgba(231,76,60,0.35)';
+    }
+    grid.appendChild(cell);
+  }
+
+  // Axis labels
+  const axisContainer = document.getElementById('axisLabels');
+  axisContainer.innerHTML = '';
+  for (let i = 1; i <= 20; i++) {
+    const label = document.createElement('div');
+    label.className = 'axis-label' + (i % 5 === 0 ? ' bold' : '');
+    label.textContent = i * 100;
+    axisContainer.appendChild(label);
+  }
+}
+
+function renderLegend(segments) {
+  const container = document.getElementById('waffleLegend');
+  container.innerHTML = '';
+
+  segments.forEach(seg => {
+    const row = rows[seg.colorIdx] || rows.find((_, i) => i === seg.colorIdx);
+    if (!row) return;
+    const weapon = WEAPONS[row.weaponIdx];
+    const color = WEAPON_COLORS[seg.colorIdx % WEAPON_COLORS.length];
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-swatch" style="background:${color}"></div> ${weapon.emoji} ${weapon.name} (${Math.round(seg.damage)})`;
+    container.appendChild(item);
+  });
+
+  // Remaining
+  const totalDmg = segments.reduce((s, seg) => s + seg.damage, 0);
+  const rem = ENEMY_HP - totalDmg;
+  if (rem > 0) {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-swatch" style="background:rgba(231,76,60,0.6)"></div> Remaining (${Math.round(rem)})`;
+    container.appendChild(item);
+  }
+}
+
+// Wire up the Add Weapon button
+document.getElementById('addWeaponBtn').addEventListener('click', addRow);
+
+// Initialize with one empty row
+addRow();
+</script>
+</body>
+</html>
